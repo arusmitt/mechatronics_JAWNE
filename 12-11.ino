@@ -18,7 +18,8 @@ unsigned long previousMillis = 0;
 const long sendInterval = 500;  // 500 ms for 2Hz (1 second / 2 = 500ms)
 unsigned long previousIncrementMillis = 0;
 const long incrementInterval = 2;  // Increment every 2 ms
-uint8_t counter = 0; // counter must be 8-bit
+uint8_t counter = 0; // counter must be 8-bi
+int health = 100; 
 // end tophat code
 
 WebServer server(80);
@@ -290,6 +291,7 @@ String webpage = R"=====(
 void handleRoot() {
   server.send(200, "text/html", webpage);
   counter++;
+  health--; 
 }
 
 
@@ -301,9 +303,9 @@ void handleSetMode() {
     server.send(200, "text/plain", "Mode set to " + currentMode);
     Serial.println("Mode changed to: " + currentMode);
     counter++;
+    health--;
   } else {
     server.send(400, "text/plain", "Invalid request");
-    counter++;
   }
 }
 
@@ -315,9 +317,9 @@ void handleJoystick() {
     y = server.arg("y").toInt();
     server.send(200, "text/plain", "Joystick data received");
     counter++;
+    health--;
   } else {
     server.send(400, "text/plain", "Invalid request");
-    counter++;
   }
   }
 
@@ -367,14 +369,21 @@ void loop(){
   if (currentMillis - previousMillis >= sendInterval) {
     previousMillis = currentMillis;
     send_I2C_byte(counter); 
-    Serial.print("COUNTER "); 
-    Serial.println(counter);
+    Serial.print("HEALTH "); 
+    Serial.println(health);
     counter = 0; 
   }
 
   // run whatever loop corresponds to the state chosen by clicking HTML buttons 
   server.handleClient(); // Handle incoming client requests
-  if (prevMode != currentMode) {
+  if (health <= 0){
+    currentMode == "manual";
+    Serial.println("you died bitch");
+    delay(5000); // change to 15 s
+    health = 100; 
+    Serial.println("respawned");
+  }
+  else if (prevMode != currentMode) {
       updateMotorControls(0, 0, 0, 0); 
       prevMode = currentMode; 
   }

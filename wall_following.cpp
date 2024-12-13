@@ -67,8 +67,8 @@ void read_TOF(void) {
   sensor_1.rangingTest(&measure_1, false); // pass in true to get debug data printout
   if (measure_1.RangeStatus != 4) { // phase failures have incorrect data 
     front_TOF_distance = measure_1.RangeMilliMeter;
-    Serial.println("front.  "); 
-    Serial.println(front_TOF_distance); 
+    // Serial.println("front.  "); 
+    // Serial.println(front_TOF_distance); 
     // Serial.println("FRONT TOF:     "); 
     // Serial.print(front_TOF_distance);
   } //else { 
@@ -77,8 +77,8 @@ void read_TOF(void) {
   sensor_2.rangingTest(&measure_2, false); //
   if (measure_2.RangeStatus != 4) { // phase failures have incorrect data 
     right_TOF_distance = measure_2.RangeMilliMeter;
-    Serial.println("right.  "); 
-    Serial.println(right_TOF_distance); 
+    // Serial.println("right.  "); 
+    // Serial.println(right_TOF_distance); 
     //   Serial.println("              Right TOF:     "); 
     // Serial.print(right_TOF_distance);
     // delay(1000); 
