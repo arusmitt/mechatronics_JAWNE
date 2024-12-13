@@ -6,6 +6,15 @@
 #include "wall_following.h"
 #include "vive.h"
 #include <Wire.h>
+#include <ESP32Servo.h>
+
+// create servo object and define pins & vars
+Servo myservo; 
+#define SERVO_PIN 40
+unsigned long servopreviousMillis = 0;
+const long servointerval = 5;  
+int servoPos = 0; 
+bool servoIncreasing = true; 
 
 const char* ssid = "ESP32_Test";
 const char* password = "12345678";
@@ -18,7 +27,7 @@ unsigned long previousMillis = 0;
 const long sendInterval = 500;  // 500 ms for 2Hz (1 second / 2 = 500ms)
 unsigned long previousIncrementMillis = 0;
 const long incrementInterval = 2;  // Increment every 2 ms
-uint8_t counter = 0; // counter must be 8-bi
+uint8_t counter = 0; // counter must be 8-bit
 int health; 
 // end tophat code
 
@@ -320,6 +329,14 @@ void setup() {
   setUpMotors(); 
   setup_wall_following();
   //vivesetup(); 
+
+  // servo setup 
+  ESP32PWM::allocateTimer(0);
+  ESP32PWM::allocateTimer(1);
+  ESP32PWM::allocateTimer(2);
+  ESP32PWM::allocateTimer(3);
+  myservo.setPeriodHertz(50);
+  myservo.attach(SERVO_PIN, 500, 2400);
 }
 
 float mainStateArray[8] = {0.0};
@@ -327,6 +344,23 @@ float mainStateArray[8] = {0.0};
 // int cnx = 3950; 
 // int cny = 4470; 
 void loop(){
+
+  unsigned long servocurrentMillis = millis();
+  if (servocurrentMillis - servopreviousMillis >= servointerval) {
+    servopreviousMillis = servocurrentMillis;
+    myservo.write(servoPos);
+    if (servoIncreasing) {
+      servoPos++;
+      if (servoPos >= 180) {
+        servoIncreasing = false;
+      }
+    } else {
+      servoPos--;
+      if (servoPos <= 0) {
+        servoIncreasing = true;
+      }
+    }
+  }
 
   // tophat code
   unsigned long currentMillis = millis(); 
@@ -446,14 +480,14 @@ uint8_t receive_I2C_byte() {
   uint8_t byteIn = 0;
 
   if (bytesReceived > 0) {
-    Serial.print("Received from slave: ");
+    // Serial.print("Received from slave: ");
     while (Wire.available()) {
       byteIn = Wire.read();
-      Serial.printf("0x%02X ", byteIn);
+      // Serial.printf("0x%02X ", byteIn);
     }
-    Serial.println();
+    // Serial.println();
   } else {
-    Serial.println("No data received from slave");
+    // Serial.println("No data received from slave");
   }
   return byteIn;
 }
