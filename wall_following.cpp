@@ -33,7 +33,7 @@ long right_TOF_distance = 0;
 
 // variables for chosen distances
 int front_collision = 90;
-int good_wall_distance = 90;
+int good_wall_distance = 85;
 int wall_tolerance = 0;
 
 float wfstateArray[8] = {0.0};
@@ -169,9 +169,9 @@ void move(){
       // Serial.print("go straight"); 
       //  delay(500); 
       //updateMotorControls(4000, 4000, 1, 1); 
-         updateMotorControls(2, 2, 0, 0); 
-         wfstateArray[4] = 2; 
-         wfstateArray[5] = 2; 
+         updateMotorControls(5, 5, 0, 0); 
+         wfstateArray[4] = 5; 
+         wfstateArray[5] = 5; 
          wfstateArray[6] = 0; 
          wfstateArray[7] = 0;
     }
@@ -219,9 +219,9 @@ void move(){
       
       
     } else if (state == INCREASE_RIGHT_MOTOR_ALOT) {
-      updateMotorControls(0, 2, 0, 0); 
+      updateMotorControls(0, 5, 0, 0); 
       wfstateArray[4] = 0; 
-      wfstateArray[5] = 2;  
+      wfstateArray[5] = 5;  
       wfstateArray[6] = 0; 
       wfstateArray[7] = 0;
     }
