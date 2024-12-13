@@ -19,7 +19,7 @@ const long sendInterval = 500;  // 500 ms for 2Hz (1 second / 2 = 500ms)
 unsigned long previousIncrementMillis = 0;
 const long incrementInterval = 2;  // Increment every 2 ms
 uint8_t counter = 0; // counter must be 8-bi
-int health = 100; 
+int health; 
 // end tophat code
 
 WebServer server(80);
@@ -168,11 +168,6 @@ String webpage = R"=====(
         <button onclick="setMode('wall_following')">Wall Following</button>
     </div>
 
-    <h2>Position Tracker</h2>
-    <canvas id="robotCanvas" width="400" height="400"></canvas>
-    <p>Current Position - X: <span id="xPos"></span>, Y: <span id="yPos"></span></p>
-    <p>Distance: <span id="distance"></span>, Angle: <span id="angle"></span></p>
-
     <script>
     // D-Pad Control Script
     const dpad = document.getElementById("dpad");
@@ -214,13 +209,13 @@ String webpage = R"=====(
     function sendDirectionData(direction) {
         switch (direction) {
             case "up":
-                sendDpadData(0, 100);
+                sendDpadData(0, 50);
                 break;
             case "right":
                 sendDpadData(100, 0);
                 break;
             case "down":
-                sendDpadData(0, -100);
+                sendDpadData(0, -50);
                 break;
             case "left":
                 sendDpadData(-100, 0);
@@ -255,33 +250,6 @@ String webpage = R"=====(
             .catch(error => console.error('Error:', error));
     }
 
-    // Robot Position Tracker Script
-    const canvas = document.getElementById('robotCanvas');
-    const ctx = canvas.getContext('2d');
-    const xPosElement = document.getElementById('xPos');
-    const yPosElement = document.getElementById('yPos');
-    const distanceElement = document.getElementById('distance');
-    const angleElement = document.getElementById('angle');
-
-    function updatePosition() {
-        fetch('/position')
-            .then(response => response.json())
-            .then(data => {
-                if ('x' in data && 'y' in data) {
-                    xPosElement.textContent = data.x;
-                    yPosElement.textContent = data.y;
-                }
-                if ('distance' in data) {
-                    distanceElement.textContent = data.distance.toFixed(2);
-                }
-                if ('angle' in data) {
-                    angleElement.textContent = data.angle.toFixed(2);
-                }
-            })
-            .catch(error => console.error('Error:', error));
-    }
-
-    setInterval(updatePosition, 100);
     </script>
 </body>
 </html>
@@ -291,7 +259,6 @@ String webpage = R"=====(
 void handleRoot() {
   server.send(200, "text/html", webpage);
   counter++;
-  health--; 
 }
 
 
@@ -303,7 +270,6 @@ void handleSetMode() {
     server.send(200, "text/plain", "Mode set to " + currentMode);
     Serial.println("Mode changed to: " + currentMode);
     counter++;
-    health--;
   } else {
     server.send(400, "text/plain", "Invalid request");
   }
@@ -317,7 +283,6 @@ void handleJoystick() {
     y = server.arg("y").toInt();
     server.send(200, "text/plain", "Joystick data received");
     counter++;
-    health--;
   } else {
     server.send(400, "text/plain", "Invalid request");
   }
@@ -333,7 +298,7 @@ void setup() {
   Serial.begin(115200);  //for printing
 
   // tophat i2c setup 
-  Wire.begin(SDA_PIN, SCL_PIN, 400000); 
+  Wire.begin(SDA_PIN, SCL_PIN, 40000); 
   
   //WIFI 
    // AP Wifi set up
@@ -369,21 +334,19 @@ void loop(){
   if (currentMillis - previousMillis >= sendInterval) {
     previousMillis = currentMillis;
     send_I2C_byte(counter); 
-    Serial.print("HEALTH "); 
-    Serial.println(health);
     counter = 0; 
   }
 
   // run whatever loop corresponds to the state chosen by clicking HTML buttons 
   server.handleClient(); // Handle incoming client requests
-  if (health <= 0){
+  health = receive_I2C_byte(); 
+  while (health <= 0){
     currentMode == "manual";
-    Serial.println("you died bitch");
-    delay(5000); // change to 15 s
-    health = 100; 
-    Serial.println("respawned");
-  }
-  else if (prevMode != currentMode) {
+    Serial.println("you died sucker");
+    health = receive_I2C_byte();
+    counter = 0;
+  } 
+  if (prevMode != currentMode) {
       updateMotorControls(0, 0, 0, 0); 
       prevMode = currentMode; 
   }
@@ -477,7 +440,7 @@ void send_I2C_byte(uint8_t data) {
   }
 }
 
-void receive_I2C_byte() {
+uint8_t receive_I2C_byte() {
   // Request data from slave
   uint8_t bytesReceived = Wire.requestFrom(TOPHAT_I2C_SLAVE_ADDR, 1);
   uint8_t byteIn = 0;
@@ -492,5 +455,6 @@ void receive_I2C_byte() {
   } else {
     Serial.println("No data received from slave");
   }
+  return byteIn;
 }
 
