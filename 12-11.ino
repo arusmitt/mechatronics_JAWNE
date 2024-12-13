@@ -5,9 +5,21 @@
 #include "motor_control.h"
 #include "wall_following.h"
 #include "vive.h"
+#include <Wire.h>
 
 const char* ssid = "ESP32_Test";
 const char* password = "12345678";
+
+// start tophat code
+#define TOPHAT_I2C_SLAVE_ADDR 0x28
+#define SDA_PIN 18
+#define SCL_PIN 19 
+unsigned long previousMillis = 0;
+const long sendInterval = 500;  // 500 ms for 2Hz (1 second / 2 = 500ms)
+unsigned long previousIncrementMillis = 0;
+const long incrementInterval = 2;  // Increment every 2 ms
+uint8_t counter = 0; // counter must be 8-bit
+// end tophat code
 
 WebServer server(80);
 
@@ -357,6 +369,7 @@ void loop(){
       // Serial.println("wall_following"); 
      // delay(100); 
       wall_following_loop(); 
+      server.handleClient();
     //  yield();
     
       } else if (currentMode == "go_forward") {
@@ -419,7 +432,6 @@ void loop(){
      // delay(100); 
     }
 }
-
 
 
 
