@@ -2,10 +2,10 @@
 #include <Arduino.h>
 
 // encoder definitions
-#define ENCA 3 // yellow (encoder)
-#define ENCB 4 // white (encoder)
-#define ENCA2 8 // (yellow)
-#define ENCB2 9 // (white)
+#define ENCA 4 // yellow (encoder)
+#define ENCB 5 // white (encoder)
+#define ENCA2 36 // (yellow)
+#define ENCB2 35 // (white)
 #define REV_COUNT 120  
 
 volatile int pos1 = 0;
@@ -52,13 +52,13 @@ unsigned long previousTime2 = 0;
 
 //pin naming
 //motor 1
-const int pwmPin = 5;  //pin controlling pwm going to H bridge
-const int topIn = 6; //voltage input closest to the top of H bridge(set as either 0 or 5)
-const int bottomIn = 7; //voltage input closest to bottom of H bridge(set as either 0 or 5)
+const int pwmPin = 42;  //pin controlling pwm going to H bridge
+const int topIn = 40; //voltage input closest to the top of H bridge(set as either 0 or 5)
+const int bottomIn = 41; //voltage input closest to bottom of H bridge(set as either 0 or 5)
 //motor 2
-const int pwmPin2 = 10;  //pin controlling pwm going to H bridge
-const int topIn2 = 11; //voltage input closest to the top of H bridge(set as either 0 or 5)
-const int bottomIn2 = 12; //voltage input closest to bottom of H bridge(set as either 0 or 5)
+const int pwmPin2 = 39;  //pin controlling pwm going to H bridge
+const int topIn2 = 38; //voltage input closest to the top of H bridge(set as either 0 or 5)
+const int bottomIn2 = 37; //voltage input closest to bottom of H bridge(set as either 0 or 5)
 
 //pwm set up
 const int pwmResolution = 12; //12 bit

@@ -9,10 +9,10 @@ Adafruit_VL53L0X sensor_1 = Adafruit_VL53L0X();
 Adafruit_VL53L0X sensor_2 = Adafruit_VL53L0X();
 
 // TOF pins
-#define SDA_PIN 18
-#define SCL_PIN 19 
-#define FRONT_TOF_PIN 14
-#define RIGHT_TOF_PIN 13
+#define SDA_PIN 21
+#define SCL_PIN 33 
+#define FRONT_TOF_PIN 15
+#define RIGHT_TOF_PIN 16
 
 //States 
 #define GO_STRAIGHT 111

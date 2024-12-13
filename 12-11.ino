@@ -10,7 +10,7 @@
 
 // create servo object and define pins & vars
 Servo myservo; 
-#define SERVO_PIN 40
+#define SERVO_PIN 10
 unsigned long servopreviousMillis = 0;
 const long servointerval = 5;  
 int servoPos = 0; 
@@ -20,9 +20,9 @@ const char* ssid = "ESP32_Test";
 const char* password = "12345678";
 
 // start tophat code
-#define TOPHAT_I2C_SLAVE_ADDR 0x28
-#define SDA_PIN 18
-#define SCL_PIN 19 
+//#define TOPHAT_I2C_SLAVE_ADDR 0x28
+#define SDA_PIN 21
+#define SCL_PIN 33 
 unsigned long previousMillis = 0;
 const long sendInterval = 500;  // 500 ms for 2Hz (1 second / 2 = 500ms)
 unsigned long previousIncrementMillis = 0;
@@ -307,7 +307,7 @@ void setup() {
   Serial.begin(115200);  //for printing
 
   // tophat i2c setup 
-  Wire.begin(SDA_PIN, SCL_PIN, 40000); 
+  //Wire.begin(SDA_PIN, SCL_PIN, 40000); 
   
   //WIFI 
    // AP Wifi set up
@@ -363,23 +363,23 @@ void loop(){
   }
 
   // tophat code
-  unsigned long currentMillis = millis(); 
-  //send the counter value and reset it every 500 ms 
-  if (currentMillis - previousMillis >= sendInterval) {
-    previousMillis = currentMillis;
-    send_I2C_byte(counter); 
-    counter = 0; 
-  }
+  // unsigned long currentMillis = millis(); 
+  // //send the counter value and reset it every 500 ms 
+  // if (currentMillis - previousMillis >= sendInterval) {
+  //   previousMillis = currentMillis;
+  //   send_I2C_byte(counter); 
+  //   counter = 0; 
+  // }
 
   // run whatever loop corresponds to the state chosen by clicking HTML buttons 
   server.handleClient(); // Handle incoming client requests
-  health = receive_I2C_byte(); 
-  while (health <= 0){
-    currentMode == "manual";
-    Serial.println("you died sucker");
-    health = receive_I2C_byte();
-    counter = 0;
-  } 
+  // health = receive_I2C_byte(); 
+  // while (health <= 0){
+  //   currentMode == "manual";
+  //   Serial.println("you died sucker");
+  //   health = receive_I2C_byte();
+  //   counter = 0;
+  // } 
   if (prevMode != currentMode) {
       updateMotorControls(0, 0, 0, 0); 
       prevMode = currentMode; 
@@ -459,36 +459,35 @@ void loop(){
 }
 
 // I2C protocol for the top hat
-void send_I2C_byte(uint8_t data) {
-  // Send data to slave
-  Wire.beginTransmission(TOPHAT_I2C_SLAVE_ADDR);
-  Wire.write(data);  // Send some test data
-  uint8_t error = Wire.endTransmission();
+// void send_I2C_byte(uint8_t data) {
+//   // Send data to slave
+//   Wire.beginTransmission(TOPHAT_I2C_SLAVE_ADDR);
+//   Wire.write(data);  // Send some test data
+//   uint8_t error = Wire.endTransmission();
 
-  if (error == 0) {
-    Serial.println("Data sent successfully");
-    rgbLedWrite(2, 0, 20, 0);  // green
-  } else {
-    Serial.printf("Error sending data: %d\n", error);
-    rgbLedWrite(2, 20, 0, 0);  // red
-  }
-}
+//   if (error == 0) {
+//     Serial.println("Data sent successfully");
+//     rgbLedWrite(2, 0, 20, 0);  // green
+//   } else {
+//     Serial.printf("Error sending data: %d\n", error);
+//     rgbLedWrite(2, 20, 0, 0);  // red
+//   }
+// }
 
-uint8_t receive_I2C_byte() {
-  // Request data from slave
-  uint8_t bytesReceived = Wire.requestFrom(TOPHAT_I2C_SLAVE_ADDR, 1);
-  uint8_t byteIn = 0;
+// uint8_t receive_I2C_byte() {
+//   // Request data from slave
+//   uint8_t bytesReceived = Wire.requestFrom(TOPHAT_I2C_SLAVE_ADDR, 1);
+//   uint8_t byteIn = 0;
 
-  if (bytesReceived > 0) {
-    // Serial.print("Received from slave: ");
-    while (Wire.available()) {
-      byteIn = Wire.read();
-      // Serial.printf("0x%02X ", byteIn);
-    }
-    // Serial.println();
-  } else {
-    // Serial.println("No data received from slave");
-  }
-  return byteIn;
-}
-
+//   if (bytesReceived > 0) {
+//     // Serial.print("Received from slave: ");
+//     while (Wire.available()) {
+//       byteIn = Wire.read();
+//       // Serial.printf("0x%02X ", byteIn);
+//     }
+//     // Serial.println();
+//   } else {
+//     // Serial.println("No data received from slave");
+//   }
+//   return byteIn;
+// }
