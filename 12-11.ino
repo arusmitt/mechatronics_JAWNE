@@ -289,6 +289,7 @@ String webpage = R"=====(
 //sets webpage
 void handleRoot() {
   server.send(200, "text/html", webpage);
+  counter++;
 }
 
 
@@ -299,8 +300,10 @@ void handleSetMode() {
     currentMode = server.arg("mode");
     server.send(200, "text/plain", "Mode set to " + currentMode);
     Serial.println("Mode changed to: " + currentMode);
+    counter++;
   } else {
     server.send(400, "text/plain", "Invalid request");
+    counter++;
   }
 }
 
@@ -311,8 +314,10 @@ void handleJoystick() {
     x = server.arg("x").toInt();
     y = server.arg("y").toInt();
     server.send(200, "text/plain", "Joystick data received");
+    counter++;
   } else {
     server.send(400, "text/plain", "Invalid request");
+    counter++;
   }
   }
 
@@ -324,6 +329,9 @@ void handleJoystick() {
 void setup() {
   //set up wifi 
   Serial.begin(115200);  //for printing
+
+  // tophat i2c setup 
+  Wire.begin(SDA_PIN, SCL_PIN, 400000); 
   
   //WIFI 
    // AP Wifi set up
@@ -352,6 +360,17 @@ float mainStateArray[8] = {0.0};
 // int cnx = 3950; 
 // int cny = 4470; 
 void loop(){
+
+  // tophat code
+  unsigned long currentMillis = millis(); 
+  //send the counter value and reset it every 500 ms 
+  if (currentMillis - previousMillis >= sendInterval) {
+    previousMillis = currentMillis;
+    send_I2C_byte(counter); 
+    Serial.print("COUNTER "); 
+    Serial.println(counter);
+    counter = 0; 
+  }
 
   // run whatever loop corresponds to the state chosen by clicking HTML buttons 
   server.handleClient(); // Handle incoming client requests
@@ -433,6 +452,36 @@ void loop(){
     }
 }
 
+// I2C protocol for the top hat
+void send_I2C_byte(uint8_t data) {
+  // Send data to slave
+  Wire.beginTransmission(TOPHAT_I2C_SLAVE_ADDR);
+  Wire.write(data);  // Send some test data
+  uint8_t error = Wire.endTransmission();
 
+  if (error == 0) {
+    Serial.println("Data sent successfully");
+    rgbLedWrite(2, 0, 20, 0);  // green
+  } else {
+    Serial.printf("Error sending data: %d\n", error);
+    rgbLedWrite(2, 20, 0, 0);  // red
+  }
+}
 
+void receive_I2C_byte() {
+  // Request data from slave
+  uint8_t bytesReceived = Wire.requestFrom(TOPHAT_I2C_SLAVE_ADDR, 1);
+  uint8_t byteIn = 0;
+
+  if (bytesReceived > 0) {
+    Serial.print("Received from slave: ");
+    while (Wire.available()) {
+      byteIn = Wire.read();
+      Serial.printf("0x%02X ", byteIn);
+    }
+    Serial.println();
+  } else {
+    Serial.println("No data received from slave");
+  }
+}
 
