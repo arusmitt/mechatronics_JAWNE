@@ -20,7 +20,7 @@ const char* ssid = "ESP32_Test";
 const char* password = "12345678";
 
 // start tophat code
-//#define TOPHAT_I2C_SLAVE_ADDR 0x28
+#define TOPHAT_I2C_SLAVE_ADDR 0x28
 #define SDA_PIN 21
 #define SCL_PIN 33 
 unsigned long previousMillis = 0;
@@ -28,7 +28,7 @@ const long sendInterval = 500;  // 500 ms for 2Hz (1 second / 2 = 500ms)
 unsigned long previousIncrementMillis = 0;
 const long incrementInterval = 2;  // Increment every 2 ms
 uint8_t counter = 0; // counter must be 8-bit
-int health; 
+int health = 100; // start at 100 health 
 // end tophat code
 
 WebServer server(80);
@@ -175,6 +175,8 @@ String webpage = R"=====(
     <div class="control-buttons">
         <button onclick="setMode('manual')">Manual</button>
         <button onclick="setMode('wall_following')">Wall Following</button>
+        <button onclick="setMode('auto_1')">auto_1</button>
+        <button onclick="setMode('auto_2')">auto_2</button>
     </div>
 
     <script>
@@ -305,13 +307,14 @@ void handleJoystick() {
 void setup() {
   //set up wifi 
   Serial.begin(115200);  //for printing
+  Serial.print("proof of serial");
 
   // tophat i2c setup 
-  //Wire.begin(SDA_PIN, SCL_PIN, 40000); 
+  Wire.begin(SDA_PIN, SCL_PIN, 40000); 
   
   //WIFI 
    // AP Wifi set up
-  WiFi.softAP(ssid, password);
+  WiFi.softAP(ssid, password, 6);
   IPAddress IP = WiFi.softAPIP();
  // yield(); 
   Serial.print("Access Point IP: ");
@@ -345,7 +348,36 @@ float mainStateArray[8] = {0.0};
 // int cny = 4470; 
 void loop(){
 
-  unsigned long servocurrentMillis = millis();
+  // tophat code
+  unsigned long currentMillis = millis(); 
+  //send the counter value and reset it every 500 ms 
+  if (currentMillis - previousMillis >= sendInterval) {
+    previousMillis = currentMillis;
+    send_I2C_byte(counter); 
+    counter = 0; 
+  }
+
+  // run whatever loop corresponds to the state chosen by clicking HTML buttons 
+  server.handleClient(); // Handle incoming client requests
+  health = receive_I2C_byte(); 
+  // if (health <= 2){
+  //   updateMotors(0, 0, 0, 0); 
+  //   health = receive_I2C_byte();
+  //   counter = 0;
+  //   //servoPos = 180; 
+  //   myservo.write(180);
+  //   Serial.println("you died sucker");
+  // } 
+  if (prevMode != currentMode) {
+      updateMotorControls(0, 0, 0, 0); 
+      prevMode = currentMode; 
+  }
+  else if (currentMode == "manual") {
+      // Serial.println("joystick"); 
+     // delay(100); 
+      runJoystick(x,y);
+     // yield(); 
+       unsigned long servocurrentMillis = millis();
   if (servocurrentMillis - servopreviousMillis >= servointerval) {
     servopreviousMillis = servocurrentMillis;
     myservo.write(servoPos);
@@ -362,39 +394,13 @@ void loop(){
     }
   }
 
-  // tophat code
-  // unsigned long currentMillis = millis(); 
-  // //send the counter value and reset it every 500 ms 
-  // if (currentMillis - previousMillis >= sendInterval) {
-  //   previousMillis = currentMillis;
-  //   send_I2C_byte(counter); 
-  //   counter = 0; 
-  // }
-
-  // run whatever loop corresponds to the state chosen by clicking HTML buttons 
-  server.handleClient(); // Handle incoming client requests
-  // health = receive_I2C_byte(); 
-  // while (health <= 0){
-  //   currentMode == "manual";
-  //   Serial.println("you died sucker");
-  //   health = receive_I2C_byte();
-  //   counter = 0;
-  // } 
-  if (prevMode != currentMode) {
-      updateMotorControls(0, 0, 0, 0); 
-      prevMode = currentMode; 
-  }
-  else if (currentMode == "manual") {
-      // Serial.println("joystick"); 
-     // delay(100); 
-      runJoystick(x,y);
-     // yield(); 
-
     } else if (currentMode == "wall_following") {
       // Serial.println("wall_following"); 
      // delay(100); 
       wall_following_loop(); 
       server.handleClient();
+      servoPos = 180; 
+      myservo.write(servoPos);
     //  yield();
     
       } else if (currentMode == "go_forward") {
@@ -444,50 +450,138 @@ void loop(){
              mainStateArray[i] = mainupdatedStateArray[i];
        }
 
-    } 
-    
-    
-    
-    
-    else if (currentMode == "center_nexus") {
-        //viveSetTarget(cnx, cny); 
-        //viveloop(); 
-        //vivehandlePosition();
-      // Serial.println("other"); 
-     // delay(100); 
+    } else if (currentMode == "auto_1") {
+      server.handleClient();
+      Serial.println("in auto 1"); 
+      auto_1(); 
+      currentMode = "manual";
     }
+    else if (currentMode == "auto_2") {
+      server.handleClient();
+      Serial.println("in auto 2"); 
+      auto_2(); 
+      currentMode = "manual";
+    } 
 }
 
 // I2C protocol for the top hat
-// void send_I2C_byte(uint8_t data) {
-//   // Send data to slave
-//   Wire.beginTransmission(TOPHAT_I2C_SLAVE_ADDR);
-//   Wire.write(data);  // Send some test data
-//   uint8_t error = Wire.endTransmission();
+void send_I2C_byte(uint8_t data) {
+  // Send data to slave
+  Wire.beginTransmission(TOPHAT_I2C_SLAVE_ADDR);
+  Wire.write(data);  // Send some test data
+  uint8_t error = Wire.endTransmission();
 
-//   if (error == 0) {
-//     Serial.println("Data sent successfully");
-//     rgbLedWrite(2, 0, 20, 0);  // green
-//   } else {
-//     Serial.printf("Error sending data: %d\n", error);
-//     rgbLedWrite(2, 20, 0, 0);  // red
-//   }
-// }
+  if (error == 0) {
+    Serial.println("Data sent successfully");
+    rgbLedWrite(2, 0, 20, 0);  // green
+  } else {
+    Serial.printf("Error sending data: %d\n", error);
+    rgbLedWrite(2, 20, 0, 0);  // red
+  }
+}
 
-// uint8_t receive_I2C_byte() {
-//   // Request data from slave
-//   uint8_t bytesReceived = Wire.requestFrom(TOPHAT_I2C_SLAVE_ADDR, 1);
-//   uint8_t byteIn = 0;
+uint8_t receive_I2C_byte() {
+  // Request data from slave
+  uint8_t bytesReceived = Wire.requestFrom(TOPHAT_I2C_SLAVE_ADDR, 1);
+  uint8_t byteIn = 0;
 
-//   if (bytesReceived > 0) {
-//     // Serial.print("Received from slave: ");
-//     while (Wire.available()) {
-//       byteIn = Wire.read();
-//       // Serial.printf("0x%02X ", byteIn);
-//     }
-//     // Serial.println();
-//   } else {
-//     // Serial.println("No data received from slave");
-//   }
-//   return byteIn;
-// }
+  if (bytesReceived > 0) {
+    Serial.print("Received from slave: ");
+    while (Wire.available()) {
+      byteIn = Wire.read();
+      Serial.printf("0x%02X ", byteIn);
+    }
+    // Serial.println();
+  } else {
+    // Serial.println("No data received from slave");
+  }
+  return byteIn;
+}
+
+void auto_1() { 
+  server.handleClient();
+  //makes it wall follow for a certain amount of time (until it gets to opposite nexus)
+  for (uint32_t timeInAuto1 = 0; timeInAuto1 < 180; timeInAuto1++) {
+        wall_following_loop(); 
+      }
+      Serial.println("done w wall follow loop");
+     
+      //make sure it presses button 
+
+      //go backwards for certain amount of time then go forwards 
+      for( uint32_t goback = 0; goback < 100000; goback++) {
+          updateMotorControls(1, 1, 1, 1); 
+          mainStateArray[4] = 1;
+          mainStateArray[5] = 1; 
+          mainStateArray[6] = 1; 
+          mainStateArray[7] = 1; 
+          float* mainupdatedStateArray = motorLoop(mainStateArray); 
+          for (int i = 0; i < 8; i++) {
+             mainStateArray[i] = mainupdatedStateArray[i];
+       }
+      }
+      Serial.println("done w backwards");
+      
+      //go forwards for certain amount of time
+       for( uint32_t gofor = 0; gofor < 100000; gofor++) {
+          updateMotorControls(1, 1, 0, 0); 
+          mainStateArray[4] = 1;
+          mainStateArray[5] = 1; 
+          mainStateArray[6] = 0; 
+          mainStateArray[7] = 0; 
+          float* mainupdatedStateArray = motorLoop(mainStateArray); 
+          for (int i = 0; i < 8; i++) {
+             mainStateArray[i] = mainupdatedStateArray[i];
+       }
+       }
+      Serial.println("done w forwards");
+}
+
+void auto_2() { 
+  server.handleClient();
+  //makes it wall follow for a certain amount of time (until it gets to opposite nexus)
+  for (uint32_t timeInAuto1 = 0; timeInAuto1 < 180; timeInAuto1++) {
+        wall_following_loop(); 
+      }
+     
+      //go forwards for certain amount of time
+       for( uint32_t gofor = 0; gofor < 100000; gofor++) {
+          updateMotorControls(1, 1, 0, 0); 
+          mainStateArray[4] = 1;
+          mainStateArray[5] = 1; 
+          mainStateArray[6] = 0; 
+          mainStateArray[7] = 0; 
+          float* mainupdatedStateArray = motorLoop(mainStateArray); 
+          for (int i = 0; i < 8; i++) {
+             mainStateArray[i] = mainupdatedStateArray[i];
+       }
+       }
+
+      //make sure it presses button 
+
+      //go backwards for certain amount of time then go forwards 
+      for( uint32_t goback = 0; goback < 100000; goback++) {
+          updateMotorControls(1, 1, 1, 1); 
+          mainStateArray[4] = 1;
+          mainStateArray[5] = 1; 
+          mainStateArray[6] = 1; 
+          mainStateArray[7] = 1; 
+          float* mainupdatedStateArray = motorLoop(mainStateArray); 
+          for (int i = 0; i < 8; i++) {
+             mainStateArray[i] = mainupdatedStateArray[i];
+       }
+      }
+
+       //go forwards for certain amount of time
+       for( uint32_t gofor2 = 0; gofor2 < 100000; gofor2++) {
+          updateMotorControls(1, 1, 0, 0); 
+          mainStateArray[4] = 1;
+          mainStateArray[5] = 1; 
+          mainStateArray[6] = 0; 
+          mainStateArray[7] = 0; 
+          float* mainupdatedStateArray = motorLoop(mainStateArray); 
+          for (int i = 0; i < 8; i++) {
+             mainStateArray[i] = mainupdatedStateArray[i];
+       }
+       }
+}
